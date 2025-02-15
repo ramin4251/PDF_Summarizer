@@ -40,3 +40,26 @@ python PDF_Summerizer.py
 Generated files will be created in:
 - `analysis_results/knowledge_bases/`: JSON knowledge base
 - `analysis_results/summaries/`: Final PDF report
+
+## Output Structure
+```bash
+analysis_results/
+├── knowledge_bases/
+│   └── [PDF-name]_knowledge.json
+├── pdfs/
+│   └── input.pdf
+└── summaries/
+    └── Summary_[PDF-name].pdf
+```
+
+## Troubleshooting
+- API Errors: Verify `.env` file configuration
+- Missing Dependencies: Reinstall requirements.txt
+- PDF Errors: Ensure valid PDF file path
+
+## Contributing
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
