@@ -13,7 +13,7 @@ from dotenv import load_dotenv  # Import for loading .env files
 load_dotenv(dotenv_path=r'.env')
 groq_api_key = os.getenv('GROQ_API_KEY2')
 
-Path_To_Source_PDF = r'E:\PythonCodes_SSD\AI_reads_pdf_page_by_page\Final published Paper.pdf'
+Path_To_Source_PDF = r'ENTER FULL PATH FOR YOUR PDF FILE'
 
 SOURCE_PDF = Path(Path_To_Source_PDF)
 PDF_NAME = SOURCE_PDF.name
