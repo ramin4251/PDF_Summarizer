@@ -8,7 +8,7 @@ from fpdf import FPDF
 from pathlib import Path
 from termcolor import colored
 import json
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # Import for loading .env files
 
 load_dotenv(dotenv_path=r'.env')
 groq_api_key = os.getenv('GROQ_API_KEY')
@@ -27,9 +27,9 @@ OUTPUT_PATH = KNOWLEDGE_DIR / f"{PDF_NAME.replace('.pdf', '_knowledge.json')}"
 
 MODEL_LIST = [
     "gemma2-9b-it",
+    "qwen-2.5-32b",
     "llama-3.3-70b-specdec",
     "deepseek-r1-distill-llama-70b",
-    "qwen-2.5-32b",
     "deepseek-r1-distill-qwen-32b",
 ]
 MODEL = MODEL_LIST[0]
@@ -82,6 +82,7 @@ def process_page(client: OpenAI, page_text: str, current_knowledge: list[str], p
                 3. No markdown formatting
                 4. Limit to 10 knowledge points
                 5. Skip pages with tables of contents/indexes
+                6. If text language is other than english translate to to english
                 """},
                 {"role": "user", "content": f"Page text: {page_text}"}
             ],
@@ -193,7 +194,7 @@ def setup_directories():
             raise FileNotFoundError(f"PDF file {PDF_NAME} not found")
 
 
-def save_summary(summary: str, is_final: bool = False):
+def save_summary(summary: str, part_num: int = None):
     """Save analysis summary to a perfectly formatted PDF"""
     if not summary:
         print(colored("⏭️ Skipping summary save: No content to save", "yellow"))
@@ -201,7 +202,12 @@ def save_summary(summary: str, is_final: bool = False):
     pdf_stem = Path(PDF_NAME).stem
     # Generate title from filename stem (replace underscores/hyphens with spaces and title case)
     processed_title = "Summary of " + pdf_stem.replace("_", " ").replace("-", " ").title()
-    output_path = SUMMARIES_DIR / f"Summary of {pdf_stem}.pdf"
+
+    # Include part number in the filename if provided
+    if part_num is not None:
+        output_path = SUMMARIES_DIR / f"part_{part_num}.pdf"
+    else:
+        output_path = SUMMARIES_DIR / f"Summary of {pdf_stem}.pdf"
 
     class ProfessionalPDF(FPDF):
         def __init__(self):
@@ -334,35 +340,99 @@ def save_summary(summary: str, is_final: bool = False):
         raise
 
 
+def combine_and_cleanup_parts(num_parts: int):
+    """
+    Combine all part_i.pdf files into a single PDF and delete the individual part files.
+    """
+    print(colored("\n📚 Combining all part files into a single PDF...", "cyan"))
+
+    # Create a new PDF document to hold the combined content
+    combined_pdf = pymupdf.open()  # Create a new PDF document
+
+    for part_num in range(num_parts):
+        part_pdf_path = SUMMARIES_DIR / f"part_{part_num + 1}.pdf"
+
+        if part_pdf_path.exists():
+            print(colored(f"📖 Adding part {part_num + 1} to combined PDF...", "yellow"))
+            part_pdf = pymupdf.open(part_pdf_path)
+            combined_pdf.insert_pdf(part_pdf)  # Insert the part into the combined PDF
+            part_pdf.close()
+        else:
+            print(colored(f"⚠️ Part {part_num + 1} file not found. Skipping...", "yellow"))
+
+    # Save the combined PDF
+    combined_pdf_path = SUMMARIES_DIR / f"Final_Summary_of_{PDF_NAME.replace('.pdf', '')}.pdf"
+    combined_pdf.save(combined_pdf_path)
+    combined_pdf.close()
+    print(colored(f"✅ Combined PDF saved as {combined_pdf_path}", "green"))
+
+    # Delete individual part files
+    print(colored("🗑️ Deleting individual part files...", "yellow"))
+    for part_num in range(num_parts):
+        part_pdf_path = SUMMARIES_DIR / f"part_{part_num + 1}.pdf"
+        if part_pdf_path.exists():
+            part_pdf_path.unlink()  # Delete the part file
+            print(colored(f"✅ Deleted part {part_num + 1} file.", "green"))
+
+
 def main():
     print(colored("🔧 Setting up directories...", "cyan"))  # Debug message
     setup_directories()
+
     # Load or initialize knowledge base
     print(colored("📚 Loading or initializing knowledge base...", "cyan"))  # Debug message
     knowledge_base = load_existing_knowledge()
     initial_knowledge_count = len(knowledge_base)
+
     print(colored("📖 Opening PDF document...", "cyan"))  # Debug message
     pdf_document = pymupdf.open(PDF_PATH)  # Replaced fitz with pymupdf
-    pages_to_process = pdf_document.page_count
-    print(colored(f"📚 Processing {pages_to_process} pages...", "cyan"))
-    for page_num in range(min(pages_to_process, pdf_document.page_count)):
-        print(colored(f"🔄 Processing page {page_num + 1} of {pages_to_process}...", "yellow"))  # Debug message
-        previous_count = len(knowledge_base)
-        page = pdf_document[page_num]
-        page_text = page.get_text()
-        knowledge_base = process_page(client, page_text, knowledge_base, page_num)
-        # Save only if new knowledge was added
-        if len(knowledge_base) > previous_count:
-            save_knowledge_base(knowledge_base)
+    total_pages = pdf_document.page_count
+    print(colored(f"📚 Total pages in PDF: {total_pages}", "cyan"))
 
-        # Always generate final analysis on last page
-        if page_num + 1 == pages_to_process:
-            print(colored(f"\n📊 Generating final analysis after page {page_num + 1}...", "cyan"))  # Debug message
-            final_summary = analyze_knowledge_base(client, knowledge_base)
-            save_summary(final_summary, is_final=True)
+    # Define the number of pages per part
+    pages_per_part = 1
+
+    # Calculate the number of parts needed
+    num_parts = (total_pages // pages_per_part) + (1 if total_pages % pages_per_part != 0 else 0)
+
+    for part_num in range(num_parts):
+        start_page = part_num * pages_per_part
+        end_page = min(start_page + pages_per_part, total_pages)
+
+        print(colored(f"\n📄 Processing part {part_num + 1} of {num_parts} (Pages {start_page + 1}-{end_page})...",
+                      "yellow"))
+
+        # Process each page in this part
+        part_knowledge = []
+        for page_num in range(start_page, end_page):
+            print(colored(f"🔄 Processing page {page_num + 1} of {total_pages}...", "yellow"))  # Debug message
+
+            # Process the page text
+            page = pdf_document[page_num]
+            page_text = page.get_text()
+            knowledge_base = process_page(client, page_text, knowledge_base, page_num)
+            part_knowledge.extend(knowledge_base)
+
+        # Generate a temporary summary for this part
+        print(colored(f"\n📊 Generating temporary summary after part {part_num + 1}...", "cyan"))  # Debug message
+        try:
+            temp_summary = analyze_knowledge_base(client, part_knowledge)
+            part_pdf_path = SUMMARIES_DIR / f"part_{part_num + 1}.pdf"
+            save_summary(temp_summary, part_num=part_num + 1)  # Pass part_num here
+            if part_pdf_path.exists():
+                print(colored(f"✅ Temporary summary for part {part_num + 1} saved as {part_pdf_path}", "green"))
+            else:
+                print(colored(f"❌ Error: File not found at {part_pdf_path}. Saving failed.", "red"))
+        except Exception as e:
+            print(colored(f"❌ Error generating summary for part {part_num + 1}: {str(e)}", "red"))
+
     # Final save
     if len(knowledge_base) > initial_knowledge_count:
         save_knowledge_base(knowledge_base)
+
+    # Combine all temporary summary PDFs into a single PDF and clean up
+    combine_and_cleanup_parts(num_parts)
+
     print(colored("\n✨ Processing complete! ✨", "green", attrs=['bold']))
 
 
