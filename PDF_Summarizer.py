@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=r'.env')
 groq_api_key = os.getenv('GROQ_API_KEY')
 
-Path_To_Source_PDF = r' ENTER FULL PATH FOR YOUR PDF FILE '
+Path_To_Source_PDF = r'ENTER FULL PATH FOR YOUR PDF FILE'
 
 SOURCE_PDF = Path(Path_To_Source_PDF)
 PDF_NAME = SOURCE_PDF.name
