@@ -8,7 +8,7 @@ from fpdf import FPDF
 from pathlib import Path
 from termcolor import colored
 import json
-from dotenv import load_dotenv  # Import for loading .env files
+from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=r'.env')
 groq_api_key = os.getenv('GROQ_API_KEY')
