@@ -22,3 +22,21 @@ python -m venv venv
 source venv/bin/activate  # Linux/MacOS
 # venv\Scripts\activate  # Windows
 pip install -r requirements.txt
+```
+
+## Configuration
+- Get your Groq API key from Groq Cloud (https://console.groq.com/playground)
+- Create `.env` file in root directory:
+```
+GROQ_API_KEY=your_api_key_here
+```
+- Modify `Path_To_Source_PDF` in `PDF_Summerizer.py` to point to your PDF
+
+## Usage
+```
+python PDF_Summerizer.py
+```
+
+Generated files will be created in:
+- `analysis_results/knowledge_bases/`: JSON knowledge base
+- `analysis_results/summaries/`: Final PDF report
