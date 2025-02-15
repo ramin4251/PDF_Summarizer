@@ -11,12 +11,15 @@ import json
 from dotenv import load_dotenv  # Import for loading .env files
 
 load_dotenv(dotenv_path=r'.env')
-groq_api_key = os.getenv('GROQ_API_KEY')
+groq_api_key = os.getenv('GROQ_API_KEY2')
 
-Path_To_Source_PDF = r'ENTER FULL PATH FOR YOUR PDF FILE'
+Path_To_Source_PDF = r'E:\PythonCodes_SSD\AI_reads_pdf_page_by_page\Final published Paper.pdf'
 
 SOURCE_PDF = Path(Path_To_Source_PDF)
 PDF_NAME = SOURCE_PDF.name
+
+# Define the number of pages per part
+pages_per_part = 1
 
 BASE_DIR = Path("analysis_results")
 PDF_DIR = BASE_DIR / "pdfs"
@@ -82,7 +85,9 @@ def process_page(client: OpenAI, page_text: str, current_knowledge: list[str], p
                 3. No markdown formatting
                 4. Limit to 10 knowledge points
                 5. Skip pages with tables of contents/indexes
-                6. If text language is other than english translate to to english
+                6. If text language is other than English silently use English characters similarities 
+                strictly avoid changing formulas
+                7. Skip website links
                 """},
                 {"role": "user", "content": f"Page text: {page_text}"}
             ],
@@ -388,9 +393,6 @@ def main():
     pdf_document = pymupdf.open(PDF_PATH)  # Replaced fitz with pymupdf
     total_pages = pdf_document.page_count
     print(colored(f"📚 Total pages in PDF: {total_pages}", "cyan"))
-
-    # Define the number of pages per part
-    pages_per_part = 1
 
     # Calculate the number of parts needed
     num_parts = (total_pages // pages_per_part) + (1 if total_pages % pages_per_part != 0 else 0)
