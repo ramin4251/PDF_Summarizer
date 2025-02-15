@@ -16,7 +16,7 @@ A powerful PDF analysis tool that extracts key knowledge points and generates pr
 
 ## Installation
 ```bash
-git clone https://github.com/yourusername/pdf-summarizer.git
+git clone https://github.com/ramin4251/pdf-summarizer.git
 cd pdf-summarizer
 python -m venv venv
 source venv/bin/activate  # Linux/MacOS
