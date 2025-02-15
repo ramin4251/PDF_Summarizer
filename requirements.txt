@@ -1,0 +1,8 @@
+pydantic~=2.10.6
+openai~=1.63.0
+pymupdf~=1.25.3
+termcolor~=2.5.0
+groq
+python-dotenv~=1.0.1
+pathlib~=1.0.1
+fpdf2==2.7.6
