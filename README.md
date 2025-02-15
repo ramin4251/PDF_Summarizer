@@ -25,7 +25,7 @@ pip install -r requirements.txt
 ```
 
 ## Configuration
-- Get your Groq API key from [Groq Cloud Playground](https://console.groq.com/playground)
+- Get your Groq API key from [Groq Cloud](https://console.groq.com/keys)
 - Create `.env` file in root directory:
 ```
 GROQ_API_KEY=your_api_key_here
